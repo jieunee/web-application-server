@@ -15,6 +15,7 @@ public class HeaderParser {
   
   String url;
   String request;
+  String params;
   String version;
   
   private InputStream is;
@@ -22,6 +23,10 @@ public class HeaderParser {
  
   public HeaderParser( InputStream is ){
     this.is = is;
+    this.url = null;
+    this.request = null;
+    this.params = null;
+    this.version = null;
     
     readStreams();
   }
@@ -36,6 +41,10 @@ public class HeaderParser {
 
   public String getVersion() {
     return version;
+  }
+  
+  public String getParams() {
+    return params;
   }
   
   private void readStreams(){
@@ -60,18 +69,30 @@ public class HeaderParser {
           this.request = tokens[0];
           this.url = tokens[1];
           this.version = tokens[2];
-         
+       
+          /** URL Encoding check */
+          int idx = -1; 
+          if( (idx = getUrl().indexOf("?")) > 0) {
+           
+            this.params = this.url.substring(idx+1);
+            this.url = this.url.substring(0, idx);
+          }
+          
           isFirst = false;
+          
+          log.debug(" request : " + this.request);
+          log.debug(" url : " + this.url);
         }
         else {
           String[] tokens = line.split(":");
           if( tokens.length == 2 ) header.put(tokens[0],tokens[1]);
+
+          log.debug(line);
         }
       } catch (IOException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
-      log.debug(line);
     } while( !"".equals(line) );
   
     log.debug("Read done");
