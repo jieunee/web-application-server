@@ -17,6 +17,12 @@
 ### 요구사항 1 - http://localhost:8080/index.html로 접속시 응답
 * 
 
+BufferedReader bufRead = new BufferedReader(new InputStreamReader(this.is) );
+    에 대해 line = BufferdReader.readline()의 종료조건으로 line이 null인 조건 과, line이 ""빈 문자열인 경우를 모두 생각해야 한다.
+    
+  나머지 헤더의 경우 현재 Colon을 기준으로 split()으로 사용하였으나, 마지막 빈줄때문에 로직오류가 있는듯 하다.
+  현재는 split 결과 length가 2인 경우에만 처리하도록 임시로 처리 해 두었다. :(
+  
 ### 요구사항 2 - get 방식으로 회원가입
 * 
 
