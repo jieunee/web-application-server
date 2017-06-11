@@ -17,6 +17,7 @@ public class HeaderParser {
   String request;
   String params;
   String version;
+  String body;
   
   private InputStream is;
   Map<String,String> header = new HashMap<String,String>();
@@ -47,9 +48,12 @@ public class HeaderParser {
     return params;
   }
   
-  public String getHeaderItem( String key ) {
-    
+  public String getHeaderItem( String key ) { 
     return header.get(key);
+  }
+  
+  public String getBody() {
+    return this.body;
   }
   
   private void readStreams(){
@@ -89,7 +93,7 @@ public class HeaderParser {
           log.debug(" url : " + this.url);
         }
         else {
-          String[] tokens = line.split(":");
+          String[] tokens = line.split(": ");
           if( tokens.length == 2 ) header.put(tokens[0],tokens[1]);
 
           log.debug(line);
@@ -100,7 +104,20 @@ public class HeaderParser {
       }
     } while( !"".equals(line) );
   
-    log.debug("Read done");
+    log.debug("Header Read done");
+   
+    String length = header.get("Content-Length");
+   
+    if( length != null ) {
+      try {
+        int contentLength =  Integer.valueOf(length);
+        this.body = IOUtils.readData(bufRead, contentLength);
+        
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
 
   }
 

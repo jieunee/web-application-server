@@ -1,12 +1,8 @@
 package webserver;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -17,6 +13,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import db.DataBase;
 import model.User;
 import util.HeaderParser;
 import util.HttpRequestUtils;
@@ -38,38 +35,121 @@ public class RequestHandler extends Thread {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
           
             HeaderParser hParse = new HeaderParser(in);
-          
-            if( hParse.getParams() != null ) {
+       
+            boolean loginSuccess = false;
+           
+            boolean login = false;
+           
+            switch( hParse.getRequet() ) {
+              case "POST":
 
-              Map<String, String> params = HttpRequestUtils.parseQueryString(hParse.getParams());
-             
-              /*
-              for( String key : params.keySet() ) {
-                log.debug( key + " : " + params.get(key));
+                if ( hParse.getUrl().equals("/user/create") ){
+
+                  String body = hParse.getBody();
+
+                  log.debug(" * POST : " + body);
+
+                  Map<String, String> params = HttpRequestUtils.parseQueryString(body);
+
+                  User user = new User(
+                      params.get("userId"),
+                      params.get("password"),
+                      params.get("name").replace("+", " "),
+                      params.get("email").replace("%40", "@")
+                      );
+
+                  log.debug(user.toString());
+
+                  DataBase.addUser(user);
+                }
                 
-              }*/
-              
-              User user = new User(
-                  params.get("userId"),
-                  params.get("password"),
-                  params.get("name").replace("+", " "),
-                  params.get("email")
-                  );
-              
-              log.debug(user.toString());
+                if ( hParse.getUrl().equals("/user/login") ) {
+                  
+                  String body = hParse.getBody();
+                  log.debug(" * POST : " + body);
+
+                  Map<String, String> params = HttpRequestUtils.parseQueryString(body);
+
+                  User found = DataBase.findUserById(params.get("userId"));
+                  
+                  if (found != null ) {
+                      if( params.get("password").equals(found.getPassword()) ) {
+                        loginSuccess = true;
+                      }else{
+                        loginSuccess = false;
+                      }
+                  }
+                }
+
+                break;
+                
+              case "GET":
+                /* Param check */
+                if( hParse.getUrl().equals("/user/create")
+                    && (hParse.getParams() != null)  ) {
+
+                  Map<String, String> params = HttpRequestUtils.parseQueryString(hParse.getParams());
+
+                  User user = new User(
+                      params.get("userId"),
+                      params.get("password"),
+                      params.get("name").replace("+", " "),
+                      params.get("email").replace("%40", "@")
+                      );
+
+                  log.debug(user.toString());
+
+                  DataBase.addUser(user);
+                }
+                else if( hParse.getUrl().equals("/user/list") ){
+                  String cookies = hParse.getHeaderItem("Cookie");
+
+                  Map<String,String> cookie= HttpRequestUtils.parseCookies(cookies);
+
+                  String bool = cookie.get("logined");
+                  login = Boolean.parseBoolean( bool );
+
+                }
+
+                break;
+              default:
+                break;
             }
 
             DataOutputStream dos = new DataOutputStream(out);
           
             if( hParse.getUrl().equals("/user/create")) {
-              response302Header(dos, "/index.html");
+              response302Header(dos, "/index.html",false);
               responseEmptyBody(dos);
               log.debug("response 302");
             }
+            else if ( hParse.getUrl().equals("/user/login")) {
+              if( loginSuccess ) {
+                response302Header(dos, "/index.html", loginSuccess);
+
+              }else{
+                response302Header(dos, "/user/login_failed.html", loginSuccess);
+              }
+              responseEmptyBody(dos);
+              log.debug("response 302");
+            }
+            else if (hParse.getUrl().equals("/user/list")) {
+             
+              if( login ) {
+                byte[] body = "<h1>SUCCESS!<h1>".getBytes();
+
+                response200Header(dos, body.length, hParse.getHeaderItem("Accept"));
+                responseBody(dos, body);
+
+              }
+              else
+              {
+                response302Header(dos, "user/login.html", loginSuccess);
+                responseEmptyBody(dos);
+              }
+            }
             else
             {
-              //byte[] body = "Hello YOU!".getBytes();
-              //byte[] body = hParse.toString().replaceAll("\n", "<br>").getBytes();
               Path file_path = Paths.get("./webapp", hParse.getUrl());
               byte[] body = new byte[0];
               body = Files.readAllBytes(file_path);
@@ -93,11 +173,13 @@ public class RequestHandler extends Thread {
         }
     }
     
-    private void response302Header(DataOutputStream dos, String location) {
+    private void response302Header(DataOutputStream dos, String location, boolean logged) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
             dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=" + String.valueOf(logged) + "\r\n");
             dos.writeBytes("\r\n");
+            log.debug("Set-Cookie: logined=" + String.valueOf(logged) + "\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
