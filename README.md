@@ -34,8 +34,19 @@ BufferedReader bufRead = new BufferedReader(new InputStreamReader(this.is) );
 
 ### 요구사항 5 - cookie
 * 
+로그인하기
+Set-Cookie: logined=true 로그인
+Set-Cookie: logined=false 로그아웃
 
-### 요구사항 6 - stylesheet 적용
+Database.addUser()로 회원가입정보 저장
+
+### 요구사항 6 - 사용자 목록 출력
+
+localhost:8080/user/list로 접근시 사용자 목록 출력
+
+로그인되지 않은 상태이면  index.html로 이동
+
+### 요구사항 7 - stylesheet 적용
 * 
 
 ### heroku 서버에 배포 후

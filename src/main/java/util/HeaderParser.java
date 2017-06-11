@@ -47,6 +47,11 @@ public class HeaderParser {
     return params;
   }
   
+  public String getHeaderItem( String key ) {
+    
+    return header.get(key);
+  }
+  
   private void readStreams(){
    
     BufferedReader bufRead = new BufferedReader(new InputStreamReader(this.is) );
